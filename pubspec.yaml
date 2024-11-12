@@ -51,6 +51,9 @@ dev_dependencies:
   fluttertoast: ^8.2.8
   cloud_firestore: ^5.4.4
   firebase_auth: ^5.3.1
+  image_picker: ^1.1.2
+  firebase_storage: ^12.3.5 # this is to store the picture
+  uuid: ^4.5.1 #to generate random string to give the image name
 
 
 

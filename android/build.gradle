@@ -1,3 +1,16 @@
+buildscript {
+    ext.kotlin_version = '1.8.10'
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.2.1'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath 'com.google.gms:google-services:4.3.15'
+    }
+}
+
 allprojects {
     repositories {
         google()
@@ -5,12 +18,27 @@ allprojects {
     }
 }
 
-rootProject.buildDir = "../build"
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
-}
-subprojects {
-    project.evaluationDependsOn(":app")
+
+    afterEvaluate { project ->
+        if (project.hasProperty("android")) {
+            android {
+                // Ensure resource shrinking is only active for release builds
+                buildTypes {
+                    release {
+                        // Explicitly disable resource shrinking in release build type if it causes issues
+                        shrinkResources false
+                        minifyEnabled false
+                    }
+                    debug {
+                        shrinkResources false
+                        minifyEnabled false
+                    }
+                }
+            }
+        }
+    }
 }
 
 tasks.register("clean", Delete) {

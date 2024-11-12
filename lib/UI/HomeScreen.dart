@@ -12,7 +12,34 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+  //to see the status of the app we use WidgetBindingObserver
+  final FirebaseFirestore _firestore=FirebaseFirestore.instance;
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);//this will initialize the WidgetBinding in the Homescreen
+setStatus("online");//initially the user when logs in is online
+  }
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // TODO: implement didChangeAppLifecycleState
+    super.didChangeAppLifecycleState(state);
+    if(state==AppLifecycleState.resumed){ //this is the condition where the user has off the app and again started the app
+//online
+    setStatus("online");
+
+    }else{
+      //offline
+      setStatus("offline");
+    }
+  }
+  void setStatus(String status) async{ //function to update the status of the user
+await _firestore.collection("Users").doc(_auth.currentUser!.uid).update({
+  "status":status,
+});
+  }
   final _auth = FirebaseAuth.instance;
 
   String chatID(String user1, String user2) {
@@ -60,9 +87,18 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          "HomeScreen",
-          style: TextStyle(color: Colors.white),
+        title:Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: const Text(
+                "HomeScreen",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+
+          ],
         ),
         actions: [
           IconButton(onPressed: (){
@@ -79,6 +115,33 @@ class _HomeScreenState extends State<HomeScreen> {
           : SingleChildScrollView(
         child: Column(
           children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 10,left: 5),
+              child: Row(
+                children: [
+                  Container(
+                    height: 30,
+                    width: 150,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.only(bottomLeft: Radius.circular(20),topRight: Radius.circular(20)),
+                      color: Colors.blue
+                    ),
+                    child: FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                      future: _firestore.collection("Users").doc(_auth.currentUser!.uid).get(),
+                      builder: (context, snapshot) {
+                        final userData = snapshot.data!.data();
+                        return Center(
+                          child: Text("Welcome "+
+                            userData?["name"],
+                            style: const TextStyle(color:Colors.white,fontSize:15),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 15),
               child: TextFormField(
@@ -116,7 +179,29 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
                 title: Text(userMap["name"]),
                 subtitle: Text(userMap["email"]),
-                trailing: Icon(Icons.chat),
+                trailing: Column(
+                  children: [
+                    StreamBuilder(stream: _firestore.collection("Users").doc(userMap["uid"]).snapshots(), builder: (context,snapshot){
+                      if(snapshot.connectionState==ConnectionState.waiting){
+                        return CircularProgressIndicator();
+
+                      }else if(snapshot.hasData&&snapshot.data!=null){
+                        return Column(
+                          children: [
+                            snapshot.data!["status"]== "online"?Icon(Icons.circle,color: Colors.green,):Icon(Icons.circle,color: Colors.grey,),
+                          ],
+                        );
+                      }
+                      else if(snapshot.hasError){
+                        return Icon(Icons.error);
+
+                      }
+                      else{
+                        return Icon(Icons.restore_page_outlined);
+                      }
+                    })
+                  ],
+                )
               ),
           ],
         ),
